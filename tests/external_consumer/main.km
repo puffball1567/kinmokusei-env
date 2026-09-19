@@ -1,14 +1,20 @@
-import { parse } from "kinmokusei-env";
+import { parseStrict } from "kinmokusei-env";
 import go fmt from "fmt";
 
 function main(): void {
-  const [environment, parseError] = parse("HOST=localhost\nPORT=9000\nDEBUG=true\n");
+  const [environment, parseError] = parseStrict("HOST=localhost\nPORT=9000\nDEBUG=true\nMODE=development\nBASE=http://${HOST}:${PORT}\n");
   if (parseError !== nil) {
     fmt.Println("error:", parseError.Error());
     return;
   }
-  const [host, _] = environment.text("HOST");
-  const [port, _] = environment.integer("PORT");
+  const [expanded, _] = environment.expanded();
+  const [base, _] = expanded.text("BASE");
+  const [_, rangeError] = expanded.integerRange("PORT", 1, 65535);
+  if (rangeError !== nil) {
+    fmt.Println("error:", rangeError.Error());
+    return;
+  }
+  const [mode, _] = expanded.choice("MODE", ["development", "production"]);
   const [debug, _] = environment.boolean("DEBUG");
-  fmt.Printf("%s:%d debug=%t\n", host, port, debug);
+  fmt.Printf("%s mode=%s debug=%t\n", base, mode, debug);
 }

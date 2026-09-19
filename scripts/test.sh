@@ -14,6 +14,7 @@ cd "$project_dir"
 "$keika_command" deps lock
 "$keika_command" check env.km
 "$keika_command" check examples/basic/main.km
+"$keika_command" check examples/layered/main.km
 "$keika_command" emit-go -package env -o "$generated_dir/env.go" env.km
 cp tests/*_test.go "$generated_dir/"
 
@@ -27,15 +28,26 @@ if [ "$coverage_total" != "100.0%" ]; then
 fi
 GOCACHE="$go_cache" go test -run='^$' -fuzz='^FuzzParseNeverPanics$' -fuzztime=1s
 GOCACHE="$go_cache" go test -run='^$' -fuzz='^FuzzSetAndTypedAccessNeverPanic$' -fuzztime=1s
+GOCACHE="$go_cache" go test -run='^$' -fuzz='^FuzzEncodeRoundTrip$' -fuzztime=1s
+GOCACHE="$go_cache" go test -run='^$' -fuzz='^FuzzExpansionNeverPanics$' -fuzztime=1s
 
 cd "$project_dir"
 "$keika_command" build -o "$test_dir/example" examples/basic/main.km
+"$keika_command" build -o "$test_dir/layered-example" examples/layered/main.km
 mkdir "$test_dir/example-run"
 printf 'HOST=127.0.0.1\nPORT=7000\nDEBUG=true\n' >"$test_dir/example-run/.env"
 actual_output=$(cd "$test_dir/example-run" && "$test_dir/example")
 expected_output='listening on 127.0.0.1:7000 (debug=true)'
 if [ "$actual_output" != "$expected_output" ]; then
   printf 'unexpected example output:\n%s\n' "$actual_output" >&2
+  exit 1
+fi
+
+printf 'APP_HOST=example.test\n' >"$test_dir/example-run/.env"
+actual_output=$(cd "$test_dir/example-run" && APP_PORT=9000 "$test_dir/layered-example")
+expected_output='origin=http://example.test:9000 port=9000'
+if [ "$actual_output" != "$expected_output" ]; then
+  printf 'unexpected layered example output:\n%s\n' "$actual_output" >&2
   exit 1
 fi
 
@@ -46,11 +58,11 @@ cp env.km go.mod kinmokusei.lock kinmokusei.toml "$library_dir/"
 "$keika_command" new app --module example.com/kinmokusei-env-consumer "$consumer_dir"
 cp tests/external_consumer/main.km "$consumer_dir/main.km"
 cd "$consumer_dir"
-"$keika_command" deps add --offline --replace ../library github.com/puffball1567/kinmokusei-env@v0.1.0
+"$keika_command" deps add --offline --replace ../library github.com/puffball1567/kinmokusei-env@v0.2.0
 "$keika_command" check
 "$keika_command" build -o "$test_dir/external-consumer-app"
 actual_output=$("$test_dir/external-consumer-app")
-expected_output='localhost:9000 debug=true'
+expected_output='http://localhost:9000 mode=development debug=true'
 if [ "$actual_output" != "$expected_output" ]; then
   printf 'unexpected external-consumer output:\n%s\n' "$actual_output" >&2
   exit 1

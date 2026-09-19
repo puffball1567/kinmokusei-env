@@ -17,19 +17,25 @@ and process mutation explicit so applications remain easy to test.
 - Full-line and whitespace-delimited inline comments
 - Optional `export` prefixes, UTF-8 BOM, and CRLF input
 - Required text and typed integer/boolean accessors
+- Floating-point, non-empty, choice, and inclusive integer-range validation
 - Defaults that only apply when a variable is absent
-- Import selected process variables
+- Sorted name enumeration, removal, cloning, and layered merging
+- Strict duplicate-key parsing when configuration mistakes must fail
+- Deterministic `.env` encoding with round-trip-safe quoting
+- Explicit `${NAME}` expansion with missing-reference and cycle detection
+- Import selected variables or snapshot the complete process environment
 - Apply values while preserving or overwriting existing process variables
+- Optional file loading for local overrides
 - Errors returned through `Result<T>` rather than process termination
 
-Variable expansion is intentionally not performed. Values such as `$HOME` and
-`${TOKEN}` remain literal, avoiding implicit dependencies on the calling
-process environment.
+Variable expansion is explicit. Normal parsing leaves `$HOME` and `${TOKEN}`
+literal; call `expanded()` only when references should be resolved from the
+same `Environment`. Process variables are never consulted implicitly.
 
 ## Installation
 
 ```sh
-keika deps add github.com/puffball1567/kinmokusei-env@v0.1.0
+keika deps add github.com/puffball1567/kinmokusei-env@v0.2.0
 ```
 
 Kinmokusei registers the package's short import automatically:
@@ -86,11 +92,46 @@ error instead of silently using a default.
 `fromProcess(names)` copies only the requested variables into an independent
 `Environment`. Missing variables are omitted. `apply(false)` fills variables
 that are currently absent, while `apply(true)` replaces existing values.
+`fromProcessAll()` snapshots every process variable whose name is portable.
+
+See [`examples/layered/main.km`](examples/layered/main.km) for a complete
+defaults → `.env` file → process environment composition example.
 
 ```ts
 const environment = parse("LOG_LEVEL=debug\n")?;
 environment.apply(false)?;
 ```
+
+## Layered configuration
+
+Use `merge(other, overwrite)` to build the common defaults → file → process
+configuration stack without mutating the source layers. `clone()` creates the
+initial independent layer.
+
+```ts
+const combined = defaults.clone();
+combined.merge(fileValues, true);
+combined.merge(processValues, true);
+combined.require(["DATABASE_URL", "SECRET_KEY"])?;
+const port = combined.integerRange("PORT", 1, 65535)?;
+const mode = combined.choice("MODE", ["development", "production"])?;
+```
+
+`names()` is sorted for reproducible diagnostics. `encode()` uses that order
+and quotes every value so parsing the output reconstructs the same data.
+
+## Strict parsing and expansion
+
+`parse()` accepts repeated names and keeps the last assignment, which is handy
+for layered text assembled by another tool. `parseStrict()` rejects repeats
+with their line number. `loadStrict()` provides the same policy for files;
+`loadIfExists()` returns an empty environment only when the file does not
+exist and still reports every other I/O or parse error.
+
+`expanded()` returns a new environment and recursively resolves `${NAME}`
+references from that environment. It reports undefined references, malformed
+names, unterminated references, and direct or indirect cycles. The original
+environment is unchanged, and `$NAME` without braces remains literal.
 
 ## Parsing behavior
 
@@ -101,13 +142,15 @@ environment.apply(false)?;
 - Single-quoted values are literal. Double-quoted values process the supported
   escapes listed above.
 - Text after a closing quote must be whitespace or a comment.
-- If a name occurs more than once, the last assignment wins.
+- If a name occurs more than once, `parse()` keeps the last assignment and
+  `parseStrict()` reports an error.
 - Empty assignments such as `NAME=` are valid.
 
 ## Development
 
-Run source checks, the parser/accessor matrix, 100% generated statement
-coverage, fuzz tests, the example, and an independent short-import consumer:
+Run source checks, the complete parser/accessor/layering/expansion matrix, 100%
+generated statement coverage, four fuzz targets, the example, and an
+independent short-import consumer:
 
 ```sh
 KEIKA=keika sh scripts/test.sh

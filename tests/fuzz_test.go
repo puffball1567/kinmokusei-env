@@ -32,3 +32,36 @@ func FuzzSetAndTypedAccessNeverPanic(f *testing.F) {
 		}
 	})
 }
+
+func FuzzEncodeRoundTrip(f *testing.F) {
+	f.Add("plain")
+	f.Add("line one\nline two")
+	f.Add(`quote " slash \\ hash # tab\t`)
+	f.Add("金木犀")
+	f.Fuzz(func(t *testing.T, value string) {
+		environment := NewEnvironment()
+		if err := environment.Set("VALUE", value); err != nil {
+			t.Fatal(err)
+		}
+		decoded, err := parse(environment.Encode())
+		if err != nil {
+			t.Fatalf("parse(Encode()) error = %v", err)
+		}
+		if got := decoded.TextOr("VALUE", "missing"); got != value {
+			t.Fatalf("round trip = %q, want %q", got, value)
+		}
+	})
+}
+
+func FuzzExpansionNeverPanics(f *testing.F) {
+	f.Add("literal")
+	f.Add("${A}")
+	f.Add("${MISSING}")
+	f.Add("${")
+	f.Fuzz(func(t *testing.T, value string) {
+		environment := NewEnvironment()
+		if environment.Set("A", value) == nil {
+			_, _ = environment.Expanded()
+		}
+	})
+}

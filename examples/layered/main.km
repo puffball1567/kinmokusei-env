@@ -1,0 +1,36 @@
+import { fromProcess, load, parseStrict } from "../../env";
+import go fmt from "fmt";
+
+function main(): void {
+  const [defaults, defaultsError] = parseStrict("APP_HOST=127.0.0.1\nAPP_PORT=8080\nAPP_ORIGIN=http://${APP_HOST}:${APP_PORT}\n");
+  if (defaultsError !== nil) {
+    fmt.Println("error:", defaultsError.Error());
+    return;
+  }
+  const [fileValues, fileError] = load(".env");
+  if (fileError !== nil) {
+    fmt.Println("error:", fileError.Error());
+    return;
+  }
+  const [processValues, processError] = fromProcess(["APP_PORT"]);
+  if (processError !== nil) {
+    fmt.Println("error:", processError.Error());
+    return;
+  }
+
+  const combined = defaults.clone();
+  combined.merge(fileValues, true);
+  combined.merge(processValues, true);
+  const [expanded, expansionError] = combined.expanded();
+  if (expansionError !== nil) {
+    fmt.Println("error:", expansionError.Error());
+    return;
+  }
+  const [origin, _] = expanded.text("APP_ORIGIN");
+  const [port, portError] = expanded.integerRange("APP_PORT", 1, 65535);
+  if (portError !== nil) {
+    fmt.Println("error:", portError.Error());
+    return;
+  }
+  fmt.Printf("origin=%s port=%d\n", origin, port);
+}
