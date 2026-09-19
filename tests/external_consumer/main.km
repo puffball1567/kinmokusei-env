@@ -1,0 +1,14 @@
+import { parse } from "kinmokusei-env";
+import go fmt from "fmt";
+
+function main(): void {
+  const [environment, parseError] = parse("HOST=localhost\nPORT=9000\nDEBUG=true\n");
+  if (parseError !== nil) {
+    fmt.Println("error:", parseError.Error());
+    return;
+  }
+  const [host, _] = environment.text("HOST");
+  const [port, _] = environment.integer("PORT");
+  const [debug, _] = environment.boolean("DEBUG");
+  fmt.Printf("%s:%d debug=%t\n", host, port, debug);
+}

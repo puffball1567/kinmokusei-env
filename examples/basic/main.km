@@ -1,0 +1,22 @@
+import { load } from "../../env";
+import go fmt from "fmt";
+
+function main(): void {
+  const [environment, loadError] = load(".env");
+  if (loadError !== nil) {
+    fmt.Println("error:", loadError.Error());
+    return;
+  }
+  const host = environment.textOr("HOST", "127.0.0.1");
+  const [port, portError] = environment.integerOr("PORT", 8080);
+  if (portError !== nil) {
+    fmt.Println("error:", portError.Error());
+    return;
+  }
+  const [debug, debugError] = environment.booleanOr("DEBUG", false);
+  if (debugError !== nil) {
+    fmt.Println("error:", debugError.Error());
+    return;
+  }
+  fmt.Printf("listening on %s:%d (debug=%t)\n", host, port, debug);
+}
