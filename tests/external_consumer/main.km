@@ -2,9 +2,15 @@ import { parseStrict } from "kinmokusei-env";
 import go fmt from "fmt";
 
 function main(): void {
-  const [environment, parseError] = parseStrict("HOST=localhost\nPORT=9000\nDEBUG=true\nMODE=development\nBASE=http://${HOST}:${PORT}\n");
+  const verifiedPrefix: string = "RAW=";
+  const [environment, parseError] = parseStrict(verifiedPrefix + b"\xff\n" + "HOST=localhost\nPORT=9000\nDEBUG=true\nMODE=development\nBASE=http://${HOST}:${PORT}\n");
   if (parseError !== nil) {
     fmt.Println("error:", parseError.Error());
+    return;
+  }
+  const [raw, rawError] = environment.text("RAW");
+  if (rawError != nil || raw != b"\xff") {
+    fmt.Println("raw text was changed");
     return;
   }
   const [expanded, _] = environment.expanded();
