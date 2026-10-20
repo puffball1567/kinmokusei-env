@@ -1,12 +1,20 @@
 # kinmokusei-env
 
+## Compatibility with Kinmokusei v0.4.7
+
+This minor release requires Kinmokusei v0.4.7 or newer. Text parameters,
+results, and collections use `bstring` to preserve the previous byte-oriented
+behavior of Go strings. Scalar verified `string` arguments can still widen to
+`bstring`; collections must be declared as `bstring[]` or copied explicitly.
+Use checked `string(raw)` conversion when your application needs verified UTF-8.
+
 `kinmokusei-env` loads configuration from `.env` files and process environment
 variables through a Kinmokusei-first API. It keeps parsing, type conversion,
 and process mutation explicit so applications remain easy to test.
 
 ## Requirements
 
-- Kinmokusei v0.4.3 or later
+- Kinmokusei v0.4.7 or later
 - Go 1.23 or later
 
 ## Features
@@ -35,7 +43,7 @@ same `Environment`. Process variables are never consulted implicitly.
 ## Installation
 
 ```sh
-keika deps add github.com/puffball1567/kinmokusei-env@v0.2.0
+keika deps add github.com/puffball1567/kinmokusei-env@v0.3.0
 ```
 
 Kinmokusei registers the package's short import automatically:
@@ -161,3 +169,8 @@ Generated Go is test output and is not maintained as source.
 ## License
 
 Apache-2.0
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development, pull request,
+release, and hotfix rules.
