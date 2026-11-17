@@ -12,20 +12,17 @@ mkdir -p "$go_cache" "$generated_dir"
 
 cd "$project_dir"
 "$keika_command" deps lock
+GOCACHE="${GOCACHE:-$test_dir/go-cache}" go test "$project_dir/scripts/check_coverage.go" "$project_dir/scripts/check_coverage_test.go"
 "$keika_command" check env.km
 "$keika_command" check examples/basic/main.km
 "$keika_command" check examples/layered/main.km
-"$keika_command" emit-go -package env -o "$generated_dir/env.go" env.km
+"$keika_command" emit-go -package env -o "$generated_dir/env.go" -source-map "$generated_dir/env.map.json" env.km
 cp tests/*_test.go "$generated_dir/"
 
 cd "$generated_dir"
 go mod init example.com/kinmokusei-env-test >/dev/null
 GOCACHE="$go_cache" go test -count=1 -coverprofile=coverage.out ./...
-coverage_total=$(GOCACHE="$go_cache" go tool cover -func=coverage.out | awk '/^total:/ { print $3 }')
-if [ "$coverage_total" != "100.0%" ]; then
-  printf 'statement coverage is %s, want 100.0%%\n' "$coverage_total" >&2
-  exit 1
-fi
+GOCACHE="$go_cache" go run "$project_dir/scripts/check_coverage.go" -- "$generated_dir/env.go" "$generated_dir/env.map.json" "$generated_dir/coverage.out"
 GOCACHE="$go_cache" go test -run='^$' -fuzz='^FuzzParseNeverPanics$' -fuzztime=1s
 GOCACHE="$go_cache" go test -run='^$' -fuzz='^FuzzSetAndTypedAccessNeverPanic$' -fuzztime=1s
 GOCACHE="$go_cache" go test -run='^$' -fuzz='^FuzzEncodeRoundTrip$' -fuzztime=1s
