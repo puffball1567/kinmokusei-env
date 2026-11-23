@@ -12,3 +12,8 @@
 | Encoding | deterministic `.env` output | empty, control characters, quotes, slashes, Unicode | arbitrary-value round-trip fuzzing |
 | Expansion | direct, forward, repeated, nested references | literal `$NAME`, source immutability, cached dependency | undefined/invalid names, unterminated reference, direct/indirect cycles |
 | Robustness | fixed regression corpus | arbitrary text/name/value/expansion fuzzing | parsers, accessors, encoders, and expansion must never panic |
+
+Compiler compatibility is checked with Kinmokusei v0.4.7 and v0.4.12, including
+source checks, generated-Go tests, executable examples and an independent
+short-import consumer. Coverage requires 100% of source-mapped library statements;
+compiler runtime helpers and injected non-null panic paths are excluded.
