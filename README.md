@@ -44,7 +44,7 @@ same `Environment`. Process variables are never consulted implicitly.
 ## Installation
 
 ```sh
-keika deps add github.com/puffball1567/kinmokusei-env@v0.3.0
+keika deps add github.com/puffball1567/kinmokusei-env@v0.3.1
 ```
 
 Kinmokusei registers the package's short import automatically:
