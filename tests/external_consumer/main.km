@@ -13,7 +13,11 @@ function main(): void {
     fmt.Println("raw text was changed");
     return;
   }
-  const [expanded, _] = environment.expanded();
+  const [expanded, expansionError] = environment.expanded();
+  if (expansionError !== nil) {
+    fmt.Println("error:", expansionError.Error());
+    return;
+  }
   const [base, _] = expanded.text("BASE");
   const [_, rangeError] = expanded.integerRange("PORT", 1, 65535);
   if (rangeError !== nil) {
